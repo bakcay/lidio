@@ -1,0 +1,30 @@
+{
+  "schema": "1.0",
+  "type": "whmcs-gateways",
+  "name": "lidio",
+  "license": "proprietary",
+  "category": "payments",
+  "description": {
+    "name": "LidIO 3D",
+    "tagline": "Accept payments online supporting a wide range of industries.",
+    "long": "Lidio API is a REST service including Payment Gateway methods, One Click Payment methods, 3D Secure Payment, Recurring Payment and Hosted Payment Gateway methods. Merchants can use one of these modules alone or multiple modules at the same system according to their needs.",
+    "features": [
+      "Accept all major credit cards directly on your site",
+      "Quick and easy integration",
+      "Highest security standards",
+      "Integrated risk management"
+    ]
+  },
+  "logo": {
+    "filename": "logo.png"
+  },
+  "support": {
+    "docs_url": "https://developer.lidio.com/"
+  },
+  "authors": [
+    {
+      "name": "Bunyamin AKCAY",
+      "homepage": "https://bunyam.in/"
+    }
+  ]
+}
