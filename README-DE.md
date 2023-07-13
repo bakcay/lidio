@@ -27,5 +27,7 @@ Nach Aktivierung des Moduls funktioniert es in 3 verschiedenen Modi:
 4. **Hosted**: Leitet den Kunden zur Bezahlung der Rechnung an Lidio-Webseiten weiter. Das System kehrt automatisch zurück, wenn die Zahlung erfolgreich oder fehlgeschlagen ist.
 
 Lidio Webseite: [https://www.lidio.com/](https://www.lidio.com/)
+
 Entwickler Webseite: [https://bunyam.in/](https://bunyam.in/)
+
 Entwickler GitHub Seite: [https://github.com/bakcay](https://github.com/bakcay)

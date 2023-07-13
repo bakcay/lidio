@@ -27,5 +27,7 @@ When the module is activated, it will work in 3 different modes:
 4. **Hosted**: Redirects the customer to Lidio pages for invoice payment. The system automatically returns in case of successful or unsuccessful payment results.
 
 Lidio website: [https://www.lidio.com/](https://www.lidio.com/)
+
 Developer website: [https://bunyam.in/](https://bunyam.in/)
+
 Developer GitHub page: [https://github.com/bakcay](https://github.com/bakcay)

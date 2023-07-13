@@ -27,5 +27,7 @@ Modül aktifleştirildiğinde, 3 farklı modda çalışacaktır:
 4. **Hosted**: Müşteriyi fatura ödemek için Lidio sayfalarına yönlendirir. Ödeme sonucunda başarılı veya başarısız sonuçlarında sistem otomatik olarak geri döner.
 
 Lidio web sayfası: [https://www.lidio.com/](https://www.lidio.com/)
+
 Geliştirici Web sayfası: [https://bunyam.in/](https://bunyam.in/)
+
 Geliştirici Github sayfası: [https://github.com/bakcay](https://github.com/bakcay)
