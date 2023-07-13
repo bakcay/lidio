@@ -92,22 +92,15 @@ if ($mode == '3dcallback') {
             checkCbInvoiceID($invoiceid, $gatewayParams['name']);
             checkCbTransID($invoiceid);
             addInvoicePayment($invoiceid, $transid, "", "", ucfirst($gatewayModuleName), "on");
-            logTransaction(ucfirst($gatewayModuleName), [
-                'request'  => $finish_arr,
-                'response' => $request3d
-            ], "Success");
+            logTransaction(ucfirst($gatewayModuleName), ['request'  => $finish_arr, 'response' => $request3d], "Success");
 
             $paymentSuccess = true;
-
+            callback3DSecureRedirect($invoiceid,true);
 
         } else {
             $mdErrorMessage = $request3d['RefTransactionNotFound'] . ' ' . $request3d['paymentInfo']['acquirerResultDetail']['pos']['message'];
-            logTransaction(ucfirst($gatewayModuleName), [
-                'request'  => $finish_arr,
-                'response' => $request3d
-            ], 'error');
-
-
+            logTransaction(ucfirst($gatewayModuleName), ['request'  => $finish_arr, 'response' => $request3d], 'Error');
+            callback3DSecureRedirect($invoiceid,false);
         }
 
     } elseif ($result_invoice['status'] != 'Unpaid') {
@@ -131,16 +124,14 @@ if ($mode == 'notifycallback') {
     $hash           = $headers['parametershash'];
     $raw_post_data  = file_get_contents('php://input');
     $raw_post_array = json_decode($raw_post_data, true);
-    logTransaction($gatewayParams['name'], $headers, 'testh');
-    logTransaction($gatewayParams['name'], $raw_post_array, 'testp');
 
     if (isset($raw_post_array['processInfo']['orderId'])) {
 
-        $merchant_key = $gatewayParams['merchant_key'];
-
+        $merchant_key     = $gatewayParams['merchant_key'];
+        $api_password     = $gatewayParams['api_password'];
         $orderId          = $raw_post_array['processInfo']['orderId'];
-        $systemTransId    = $raw_post_array['paymentList'][0]['systemTransId'];
         $result           = $raw_post_array['paymentResult'];
+        $systemTransId    = $raw_post_array['paymentList'][0]['systemTransId'];
         $totalAmount      = $raw_post_array['paymentList'][0]['amountProcessed'];
         $installmentCount = $raw_post_array['paymentList'][0]['installmentCount'];
         $invoiceid        = $orderId;
@@ -151,10 +142,12 @@ if ($mode == 'notifycallback') {
 
         $results_client = localAPI('GetClientsDetails', ['clientid' => $result_invoice['userid']]);
 
-        $hashData = $orderId . ":" . $merchant_key . ":" . number_format($totalAmount, 2, '.', '') . ":" . $result . ":" . $results_client['client']['email'];
-        $hash2    = base64_encode(hash('sha256', $hashData, true));
+        //$hashData = $orderId . ":" . $merchant_key . ":" . number_format($totalAmount, 2, '.', '') . ":" . $result . ":" . $results_client['client']['email'];
+        //$hash2    = base64_encode(hash('sha256', $hashData, true));
+        $hash2    = base64_encode(hash('sha256', ($raw_post_data.$api_password), true));
 
         if ($result_invoice['status'] == 'Unpaid' && $hash == $hash2) {
+
             if ($result == 'Success') {
                 $paymentSuccess = true;
                 $message        = 'Ödeme Başarılı';
@@ -164,12 +157,14 @@ if ($mode == 'notifycallback') {
             }
             $invoiceid = checkCbInvoiceID($invoiceid, $gatewayParams['name']);
             checkCbTransID($systemTransId);
+
             if ($paymentSuccess) {
                 addInvoicePayment($invoiceid, $systemTransId, $totalAmount, 0, 'lidio');
-                logTransaction($gatewayParams['name'], $raw_post_array, 'success');
+                logTransaction($gatewayParams['name'], $raw_post_array, 'Success');
             } else {
-                logTransaction($gatewayParams['name'], $raw_post_array, 'failed');
+                logTransaction($gatewayParams['name'], $raw_post_array, 'Failed');
             }
+
             echo 'OK';
         } else {
             echo 'FAIL';
@@ -194,22 +189,63 @@ if ($mode == 'push') {
         $redirectPage   = $response['redirectURL'];
         $redirectDelay  = 10;
         $paymentSuccess = null;
-        logTransaction(ucfirst('lidio'), ['request'  => $full_data,
-                                          'response' => $request3d
-        ], "Link Success");
+        logTransaction(ucfirst('lidio'), ['request'  => $full_data, 'response' => $request3d], "Link Success");
     } else {
         $result_message = $response['resultMessage'];
         $paymentSuccess = false;
-        logTransaction(ucfirst('lidio'), ['request'  => $full_data,
-                                          'response' => $request3d
-        ], "Link Failed");
+        logTransaction(ucfirst('lidio'), ['request'  => $full_data, 'response' => $request3d], "Link Failed");
     }
 }
 
+if ($mode == 'link') {
+    $lidio_request = new LidIO($api_key, $merchant_code, $merchant_key, $api_password, $test_mode == 'on');
+
+    $full_data = unserialize(base64_decode($_REQUEST['data']));
+
+
+    $response = $request3d = $lidio_request->endpoint('/CreatePaymentLink')
+                                           ->parameters('POST', $full_data)
+                                           ->request();
+
+
+    if ($response['result'] == 'Success') {
+        $redirectPage   = $response['linkURL'];
+        $redirectDelay  = 10;
+        $paymentSuccess = null;
+        logTransaction(ucfirst('lidio'), ['request'  => $full_data, 'response' => $request3d], "Linked Success");
+    } else {
+        $result_message = $response['resultMessage'];
+        $paymentSuccess = false;
+        logTransaction(ucfirst('lidio'), ['request'  => $full_data, 'response' => $request3d], "Linked Failed");
+    }
+}
+
+if ($mode == 'host') {
+    $lidio_request = new LidIO($api_key, $merchant_code, $merchant_key, $api_password, $test_mode == 'on');
+
+    $full_data = unserialize(base64_decode($_REQUEST['data']));
+
+
+    $response = $request3d = $lidio_request->endpoint('/StartHostedPaymentProcess')
+                                           ->parameters('POST', $full_data)
+                                           ->request();
+
+
+    if ($response['result'] == 'Success') {
+        $redirectPage   = $response['redirectURL'];
+        $redirectDelay  = 10;
+        $paymentSuccess = null;
+        logTransaction(ucfirst('lidio'), ['request'  => $full_data, 'response' => $request3d], "Hosted Success");
+    } else {
+        $result_message = $response['resultMessage'];
+        $paymentSuccess = false;
+        logTransaction(ucfirst('lidio'), ['request'  => $full_data, 'response' => $request3d], "Hosted Failed");
+    }
+
+}
+
 if ($mode == 'delay') {
-
     $result_message = !$delaySuccess ? 'İşleminiz Onaylanamadı. Tekrar denemek için faturanıza yönlendiriliyorsunuz.' : 'İşleminiz başarılıdır. Faturanıza yönlendiriliyorsunuz.';
-
 }
 
 if ($paymentSuccess === true || $delaySuccess === true) {
@@ -221,7 +257,7 @@ if ($paymentSuccess === true || $delaySuccess === true) {
 <head>
     <title><?php echo $CONFIG['CompanyName']; ?> - LidIO</title>
 </head>
-<body>
+<body style="background-color: ghostwhite;">
 <div id="content">
     <div class="lds-ring">
         <div></div>
@@ -229,14 +265,14 @@ if ($paymentSuccess === true || $delaySuccess === true) {
         <div></div>
         <div></div>
     </div>
-    <div>
+    <div style="width: 50%">
         <br>
 
         <p><?php echo $result_message; ?></p>
         <p id="countdownText"></p>
         <a href="<?php echo $redirectPage; ?>" id="redirectButton">Şimdi Yönlendir.</a>
 
-        <!-- Developer Bünyamin AKÇAY -->
+        <!--  https://github.com/bakcay  -->
     </div>
 </div>
 <style> #content {display: grid;place-items: center;}  #content p {font-size: 1.3em;font-weight: normal;font-family: sans-serif;}  #redirectButton {font-family: sans-serif;text-decoration: none;border: solid 2px black;padding: .375em 1.125em;font-size: 1rem;background: hsl(190deg, 30%, 15%);color: hsl(190deg, 10%, 95%);box-shadow: 0 0px 0px hsla(190deg, 15%, 5%, .2);transfrom: translateY(0);border-top-left-radius: 0px;border-top-right-radius: 0px;border-bottom-left-radius: 0px;border-bottom-right-radius: 0px;--dur: .15s;--delay: .15s;--radius: 16px;transition: border-top-left-radius var(--dur) var(--delay) ease-out, border-top-right-radius var(--dur) calc(var(--delay) * 2) ease-out, border-bottom-right-radius var(--dur) calc(var(--delay) * 3) ease-out, border-bottom-left-radius var(--dur) calc(var(--delay) * 4) ease-out, box-shadow calc(var(--dur) * 4) ease-out, transform calc(var(--dur) * 4) ease-out, background calc(var(--dur) * 4) steps(4, jump-end);}  #redirectButton:hover, #redirectButton:focus {box-shadow: 0 4px 8px hsla(190deg, 15%, 5%, .2);transform: translateY(-4px);background: hsl(230deg, 50%, 45%);border-top-left-radius: var(--radius);border-top-right-radius: var(--radius);border-bottom-left-radius: var(--radius);border-bottom-right-radius: var(--radius);}  .lds-ring {display: inline-block;position: relative;width: 80px;height: 80px;}  .lds-ring div {box-sizing: border-box;display: block;position: absolute;width: 64px;height: 64px;margin: 8px;border: 8px solid #252222;border-radius: 50%;animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;border-color: #252222 transparent transparent transparent;}  .lds-ring div:nth-child(1) {animation-delay: -0.45s;}  .lds-ring div:nth-child(2) {animation-delay: -0.3s;}  .lds-ring div:nth-child(3) {animation-delay: -0.15s;}  @keyframes lds-ring { 0% {         transform: rotate(0deg);     } 100% {transform: rotate(360deg);} } </style>
@@ -254,11 +290,10 @@ if ($paymentSuccess === true || $delaySuccess === true) {
     // Geri sayımı başlat
     let countdown = setInterval(function() {
       redirectDelay--;
-      countdownText.innerHTML = Math.round(redirectDelay / 10) + ' saniye içinde yönlendiriliyor' +
-          ('.').repeat(6-(redirectDelay % 6 + 1));
+      countdownText.innerHTML = Math.round(redirectDelay / 10) + ' saniye içinde yönlendiriliyor' + ('.').repeat(4-(redirectDelay % 4 + 1));
       if (redirectDelay <= 0) {
         clearInterval(countdown);
-        redirectButton.innerHTML = 'Yönlendiriliyor...';
+        redirectButton.innerHTML = 'Yönlendiriliyor.';
         window.location.href = redirectURL; // Yönlendirme işlemi
       }
     }, 100);

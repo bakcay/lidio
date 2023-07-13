@@ -13,67 +13,75 @@ App::load_function('gateway');
 $gatewayParams = getGatewayVariables('lidio');
 
 
+/**
+ * Define gateway metadata.
+ * @return string[]
+ */
 function lidio_MetaData() {
-    return array(
-        'DisplayName'                 => 'LidIO',
-        'APIVersion'                  => '1.6',
-    );
+    return [
+        'DisplayName' => 'LidIO',
+        'APIVersion'  => '1.7',
+    ];
 }
 
+/**
+ * Define gateway configuration options.
+ * @return array
+ */
 function lidio_config() {
-    return array(
+    return [
         // the friendly display name for a payment gateway should be
         // defined here for backwards compatibility
-        'FriendlyName'  => array(
+        'FriendlyName'  => [
             'Type'  => 'System',
             'Value' => 'LidIO Payment Gateway 3D Module',
-        ),
+        ],
         // a text field type allows for single line text input
-        'merchant_code' => array(
+        'merchant_code' => [
             'FriendlyName' => 'Merchant Code',
             'Type'         => 'text',
             'Size'         => '25',
             'Default'      => '',
             'Description'  => '',
-        ),
-        'api_key'       => array(
+        ],
+        'api_key'       => [
             'FriendlyName' => 'Api Key (token)',
             'Type'         => 'password',
             'Size'         => '25',
             'Default'      => '',
             'Description'  => 'Given API key(token) from LidIO. If you do not have contact us : <a href="mailto:destek@lidio.com">destek@lidio.com</a> ',
-        ),
-        'merchant_key'  => array(
+        ],
+        'merchant_key'  => [
             'FriendlyName' => 'Merchant Key',
             'Type'         => 'password',
             'Size'         => '25',
             'Default'      => '',
             'Description'  => 'Merchant key from LidIO. If you do not have contact us : <a href="mailto:destek@lidio.com">destek@lidio.com</a> ',
-        ),
-        'api_password'  => array(
+        ],
+        'api_password'  => [
             'FriendlyName' => 'Api Password',
             'Type'         => 'password',
             'Size'         => '25',
             'Default'      => '',
             'Description'  => 'Api Password from LidIO. If you do not have contact us : <a href="mailto:destek@lidio.com">destek@lidio.com</a> ',
-        ),
-        'mode' => array(
+        ],
+        'mode' => [
             'FriendlyName' => 'Payment Mode',
             'Type' => 'dropdown',
-            'Options' => array(
+            'Options' => [
                 '3d' => '3DSecure With Iframe',
-                '2d' => '2D Only',
-                'link' => 'Linked Payment (With Redirect Callback)',
-                'host' => 'Hosted Payment (Without Redirect Callback)',
-            ),
+                //'2d' => '2D Only',
+                'link' => 'Linked Payment (Without Redirect Callback)',
+                'host' => 'Hosted Payment (With Redirect Callback)',
+            ],
             'Description' => 'Choose one',
-        ),
-        'test_mode'     => array(
+        ],
+        'test_mode'     => [
             'FriendlyName' => 'Test Mode',
             'Type'         => 'yesno',
             'Description'  => 'If you are working on test enviroment',
-        )
-    );
+        ]
+    ];
 }
 
 if($gatewayParams['mode']=='3d') {
@@ -96,8 +104,7 @@ if($gatewayParams['mode']=='3d') {
             "orderId"                       => $params['invoiceid'],
             "merchantProcessId"             => $params['invoiceid'],
             "totalAmount"                   => $params['amount'],
-            "currency"                      => 'TRY',
-            //$params['currency'],
+            "currency"                      => 'TRY', //$params['currency'],
             "customerInfo"                  => [
                 "email"      => $params['clientdetails']['email'],
                 "customerId" => $params['clientdetails']['id'],
@@ -120,11 +127,11 @@ if($gatewayParams['mode']=='3d') {
                 ],
             ],
             "dontDistributeSubsellerPayout" => true,
-            "returnUrl"                     => $params['systemurl'] . '/modules/gateways/callback/lidio.php',
-            //"notificationUrl"               => "https://webhook.site/5c2210d5-d4a5-4b4c-83a0-e3d1bfa665b6",
+            "returnUrl"                     => $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=3dcallback',
             "useExternalFraudControl"       => true,
             "clientType"                    => "Web",
-            "clientInfo"                    => "string"
+            "clientUserAgent"               => $_SERVER['HTTP_USER_AGENT'],
+            "clientIp"                      => $_SERVER['REMOTE_ADDR'],
         ];
 
         $result_invoice = localAPI('GetInvoice', ['invoiceid' => $params['invoiceid']]);
@@ -188,7 +195,7 @@ if($gatewayParams['mode']=='3d') {
 if ($gatewayParams['mode'] == 'link') {
     function lidio_link($params) {
 
-        $payment_arr    = [
+        $payment_arr = [
             "orderId"                       => $params['invoiceid'],
             "merchantProcessId"             => $params['invoiceid'],
             "totalAmount"                   => $params['amount'],
@@ -230,12 +237,11 @@ if ($gatewayParams['mode'] == 'link') {
 
             'returnUrl'                => $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=delay',
             'notificationUrl'          => $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=notifycallback',
-            'alternateNotificationUrl' => 'https://webhook.site/5c2210d5-d4a5-4b4c-83a0-e3d1bfa665b6',
+            //'alternateNotificationUrl' => '	https://webhook.site/c9c50ab2-6587-4944-adb6-9b03b7b4e440',
             'useExternalFraudControl'  => true,
-            'clientType'               => 'Web',
-            'clientIp'                 => 'string',
-            'clientUserAgent'          => 'string',
-            'clientInfo'               => 'string'
+            "clientType"               => "Web",
+            "clientUserAgent"          => $_SERVER['HTTP_USER_AGENT'],
+            "clientIp"                 => $_SERVER['REMOTE_ADDR'],
         ];
         $result_invoice = localAPI('GetInvoice', ['invoiceid' => $params['invoiceid']]);
 
@@ -251,7 +257,7 @@ if ($gatewayParams['mode'] == 'link') {
         }
         $langPayNow = $params['langpaynow'];
 
-        $htmlOutput = '<form method="post" action="' . $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=push' . '">';
+        $htmlOutput = '<form method="post" action="' . $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=link' . '">';
 
         $htmlOutput .= '<input type="hidden" name="data" value="' . base64_encode(serialize($payment_arr)) . '" />';
 
@@ -261,9 +267,118 @@ if ($gatewayParams['mode'] == 'link') {
         return $htmlOutput;
     }
 }
-if(in_array($gatewayParams['mode'],['3d'])) {
-    function lidio_capture($params) {
 
+if ($gatewayParams['mode'] == 'host') {
+    function lidio_link($params) {
 
+        $payment_arr    = [
+            "orderId"                       => $params['invoiceid'],
+            "merchantProcessId"             => $params['invoiceid'],
+            "totalAmount"                   => $params['amount'],
+            "currency"                      => 'TRY',
+            'uiDesignInfo'                  => [
+                'viewType'   => 'Full',
+                'designType' => 0
+            ],
+            'customerInfo'                  => [
+                "email"      => $params['clientdetails']['email'],
+                "customerId" => $params['clientdetails']['id'],
+                "name"       => $params['clientdetails']['fullname'],
+                "phone"      => $params['clientdetails']['phonenumber'],
+            ],
+            'paymentInstruments'            => [
+                'NewCard'
+            ],
+            'paymentInstrumentInfo'         => [
+                'card' => [
+                    'processType'      => 'sales',
+                    'useInstallment'   => null,
+                    'useLoyaltyPoints' => null,
+                    'noAmex'           => null,
+                    'noDebitCard'      => null,
+                    'noForeignCard'    => null,
+                    'noCreditCard'     => null,
+                    'newCard'          => [
+                        'threeDSecureMode'   => 'None',
+                        'useIVRForCardEntry' => null,
+                        'noCvv'              => null,
+                        'cardSaveOffer'      => 'PostPayment',
+                        'cardConsents'       => [
+                            'cardSaveExtraConsent1' => 'None'
+                        ]
+                    ]
+                ]
+            ],
+            'dontDistributeSubsellerPayout' => null,
+            'sendVia'                       => 'None',
+            'returnUrl'                     => $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=delay',
+            'notificationUrl'               => $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=notifycallback',
+            //'alternateNotificationUrl'      => 'https://webhook.site/c9c50ab2-6587-4944-adb6-9b03b7b4e440',
+            'useExternalFraudControl'       => true,
+            "clientType"                    => "Web",
+            "clientUserAgent"               => $_SERVER['HTTP_USER_AGENT'],
+            "clientIp"                      => $_SERVER['REMOTE_ADDR'],
+        ];
+        $result_invoice = localAPI('GetInvoice', ['invoiceid' => $params['invoiceid']]);
+
+        foreach ($result_invoice['items']['item'] as $k => $v) {
+
+            $payment_arr['basketItems'][] = [
+                'name'      => $v['description'],
+                'category1' => 'WHMCS-' . $v['type'],
+                'quantity'  => 1,
+                'unitPrice' => $v['amount']
+            ];
+
+        }
+        $langPayNow = $params['langpaynow'];
+
+        $htmlOutput = '<form method="post" action="' . $params['systemurl'] . '/modules/gateways/callback/lidio.php?mode=host' . '">';
+
+        $htmlOutput .= '<input type="hidden" name="data" value="' . base64_encode(serialize($payment_arr)) . '" />';
+
+        $htmlOutput .= '<input type="submit" class="btn btn-success" value="' . $langPayNow . '" />';
+        $htmlOutput .= '</form>';
+
+        return $htmlOutput;
     }
 }
+
+function lidio_capture($params) {
+
+
+}
+
+function lidio_refund($params) {
+
+    require_once __DIR__ . '/lidio/lib/LidIO.php';
+
+    $merchant_code = $params['merchant_code'];
+    $api_key       = $params['api_key'];
+    $merchant_key  = $params['merchant_key'];
+    $api_password  = $params['api_password'];
+    $test_mode     = $params['test_mode'];
+
+    $lidio_request = new LidIO($api_key, $merchant_code, $merchant_key, $api_password, $test_mode == 'on');
+
+
+    $payment_arr = [
+        "orderId"     => $params['invoiceid'],
+        "totalAmount" => $params['amount'],
+        "currency"    => 'TRY',//$params['currency'],
+    ];
+
+
+    $result_refund = $lidio_request->endpoint('/Refund')
+                                   ->parameters('POST', $payment_arr)
+                                   ->request();
+
+    logTransaction(ucfirst('lidio'), $result_refund, "Refund");
+
+    return [
+        'status'  => $result_refund['result']=='Success'?'success':'error',
+        'rawdata' => $result_refund,
+    ];
+
+}
+
